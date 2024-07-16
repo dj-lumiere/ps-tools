@@ -18,6 +18,46 @@
 #include <cstdint>
 #include <utility>
 
+// Print __int128_t
+std::ostream& operator<<(std::ostream& os, const __int128_t& target)
+{
+    if (target == 0) {
+        os << '0';
+        return os;
+    }
+    __int128_t temp = target;
+    if (temp < 0) {
+        os << '-';
+        temp = -temp;
+    }
+    std::string answer;
+    while (temp > 0) {
+        answer.push_back(static_cast<char>('0' + temp % 10));
+        temp /= 10;
+    }
+    std::reverse(answer.begin(), answer.end());
+    os << answer;
+    return os;
+}
+
+// Print __uint128_t
+std::ostream& operator<<(std::ostream& os, const __uint128_t& target)
+{
+    if (target == 0) {
+        os << '0';
+        return os;
+    }
+    __uint128_t temp = target;
+    std::string answer;
+    while (temp > 0) {
+        answer.push_back(static_cast<char>('0' + temp % 10));
+        temp /= 10;
+    }
+    std::reverse(answer.begin(), answer.end());
+    os << answer;
+    return os;
+}
+
 // Print pair
 template<typename T, typename U> std::ostream& operator<<(std::ostream& os, const std::pair<T, U>& target)
 {
