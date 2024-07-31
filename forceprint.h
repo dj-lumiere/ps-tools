@@ -58,6 +58,22 @@ std::ostream& operator<<(std::ostream& os, const __uint128_t& target)
     return os;
 }
 
+// Print c-style array
+template<typename element, size_t size> std::ostream& operator<<(std::ostream& os, const element (&target)[size])
+{
+    os << '[';
+    size_t i = 0;
+    for (const element& e: target) {
+        os << e;
+        if (i + 1 != size) {
+            os << ',' << ' ';
+        }
+    i += 1;
+    }
+    os << ']';
+    return os;
+}
+
 // Print pair
 template<typename T, typename U> std::ostream& operator<<(std::ostream& os, const std::pair<T, U>& target)
 {
