@@ -123,9 +123,9 @@ template<typename element> std::ostream& operator<<(std::ostream& os, const std:
 template<typename element, size_t size> std::ostream& operator<<(std::ostream& os, const std::array<element, size>& target)
 {
     os << "[";
-    for (uint64_t i = 0; i < size; i++) {
-        os << target[i];
-        if (i + 1 != size) {
+    for (auto it = target.begin(); it != target.end(); ++it) {
+        os << *it;
+        if (std::next(it) != target.end()) {
             os << ", ";
         }
     }
