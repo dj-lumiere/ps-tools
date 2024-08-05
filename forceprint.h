@@ -1,7 +1,3 @@
-#ifndef forceprint_h
-#define forceprint_h
-#pragma once
-
 #include <iostream>
 #include <algorithm>
 #include <vector>
@@ -17,60 +13,67 @@
 #include <set>
 #include <cstdint>
 #include <utility>
+#include <type_traits>
 
-// Print __int128_t
-std::ostream& operator<<(std::ostream& os, const __int128_t& target)
-{
-    if (target == 0) {
-        os << '0';
+#pragma once
+
+#if defined(__GNUC__) || defined(__clang__)
+    // Print __int128_t
+    inline std::ostream& operator<<(std::ostream& os, const __int128_t& target)
+    {
+        if (target == 0) {
+            os << '0';
+            return os;
+        }
+        __int128_t temp = target;
+        if (temp < 0) {
+            os << '-';
+            temp = -temp;
+        }
+        std::string answer;
+        while (temp > 0) {
+            answer.push_back(static_cast<char>('0' + temp % 10));
+            temp /= 10;
+        }
+        std::reverse(answer.begin(), answer.end());
+        os << answer;
         return os;
     }
-    __int128_t temp = target;
-    if (temp < 0) {
-        os << '-';
-        temp = -temp;
-    }
-    std::string answer;
-    while (temp > 0) {
-        answer.push_back(static_cast<char>('0' + temp % 10));
-        temp /= 10;
-    }
-    std::reverse(answer.begin(), answer.end());
-    os << answer;
-    return os;
-}
 
-// Print __uint128_t
-std::ostream& operator<<(std::ostream& os, const __uint128_t& target)
-{
-    if (target == 0) {
-        os << '0';
+    // Print __uint128_t
+    inline std::ostream& operator<<(std::ostream& os, const __uint128_t& target)
+    {
+        if (target == 0) {
+            os << '0';
+            return os;
+        }
+        __uint128_t temp = target;
+        std::string answer;
+        while (temp > 0) {
+            answer.push_back(static_cast<char>('0' + temp % 10));
+            temp /= 10;
+        }
+        std::reverse(answer.begin(), answer.end());
+        os << answer;
         return os;
     }
-    __uint128_t temp = target;
-    std::string answer;
-    while (temp > 0) {
-        answer.push_back(static_cast<char>('0' + temp % 10));
-        temp /= 10;
-    }
-    std::reverse(answer.begin(), answer.end());
-    os << answer;
-    return os;
-}
+#endif
 
 // Print c-style array
-template<typename element, size_t size> std::ostream& operator<<(std::ostream& os, const element (&target)[size])
+template<typename element, size_t size,
+    typename std::enable_if<!std::is_same<element, char>::value && !std::is_same<element, wchar_t>::value, int>::type = 0>
+std::ostream& operator<<(std::ostream& os, const element (&target)[size])
 {
-    os << '[';
+    os << "[";
     size_t i = 0;
     for (const element& e: target) {
         os << e;
         if (i + 1 != size) {
-            os << ',' << ' ';
+            os << ", ";
         }
-    i += 1;
+        i += 1;
     }
-    os << ']';
+    os << "]";
     return os;
 }
 
@@ -228,6 +231,3 @@ template<typename element> std::ostream& operator<<(std::ostream& os, const std:
     os << "])";
     return os;
 }
-
-
-#endif
