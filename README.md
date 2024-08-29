@@ -2,4 +2,4 @@
 
 ---
 도움을 주신 분
-wider93: c-style array 출력
+* wider93: c-style array 출력
