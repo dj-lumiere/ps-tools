@@ -86,6 +86,7 @@ internal class UInt128
         return new UInt128(x2, y2);
     }
 
+    // x * y % 2^128
     public static UInt128 operator *(UInt128 x, UInt128 y)
     {
         var (xh, xl) = (x.High, x.Low);
@@ -93,10 +94,9 @@ internal class UInt128
 
         var z0 = xl * yl;
         var z1 = xl * yh + xh * yl;
-        var z2 = xh * yh;
 
-        var low = z0 + (z1 << 32);
-        var high = z2 + (z1 >> 32) + (low < z0 ? 1UL : 0);
+        var low = z0 + (z1 << 64);
+        var high = z1 + (low < z0 ? 1UL : 0);
         return new UInt128(high, low);
     }
 
