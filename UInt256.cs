@@ -86,6 +86,7 @@ internal class UInt256
         return new UInt256(x2, y2);
     }
 
+    // a*b%(2^256)
     public static UInt256 operator *(UInt256 x, UInt256 y)
     {
         var (xh, xl) = (x.High, x.Low);
@@ -93,10 +94,9 @@ internal class UInt256
 
         var z0 = xl * yl;
         var z1 = xl * yh + xh * yl;
-        var z2 = xh * yh;
 
-        var low = z0 + (z1 << 64);
-        var high = z2 + (z1 >> 64) + (low < z0 ? 1UL : 0);
+        var low = z0;
+        var high = z1;
         return new UInt256(high, low);
     }
 
