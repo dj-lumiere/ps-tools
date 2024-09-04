@@ -270,6 +270,43 @@ internal class UInt128
         return new string(sb.ToString().Reverse().ToArray());
     }
 
+    public static string Hex(UInt128 x)
+    {
+        var sb = new StringBuilder();
+        var y = Zero;
+        if (x == Zero) return "0x0";
+
+        while (x > Zero)
+        {
+            (x, y) = (x >> 4, x.Low & 0xf);
+            if (y.Low < 10)
+                sb.Append(y.Low);
+            else
+                sb.Append((char)('A' + (y.Low - 10)));
+        }
+
+        sb.Append("x0");
+
+        return new string(sb.ToString().Reverse().ToArray());
+    }
+
+    public static string Bin(UInt128 x)
+    {
+        var sb = new StringBuilder();
+        var y = Zero;
+        if (x == Zero) return "0b0";
+
+        while (x > Zero)
+        {
+            (x, y) = (x >> 1, x.Low & 1);
+            sb.Append(y.Low);
+        }
+
+        sb.Append("b0");
+
+        return new string(sb.ToString().Reverse().ToArray());
+    }
+
     public static UInt128 ParseFromString(string input)
     {
         var x = Zero;
