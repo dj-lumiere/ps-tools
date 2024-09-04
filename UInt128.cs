@@ -1,6 +1,10 @@
+using System.Text;
+
+namespace ConsoleApp1;
+
 internal class UInt128
 {
-    public UInt128(UInt64 x, UInt64 y)
+    public UInt128(ulong x, ulong y)
     {
         High = x;
         Low = y;
@@ -10,13 +14,18 @@ internal class UInt128
     {
     }
 
-    public UInt64 High { get; }
-    public UInt64 Low { get; }
+    public ulong High { get; }
+    public ulong Low { get; }
 
     public static UInt128 Zero => new(0, 0);
     public static UInt128 One => new(0, 1);
     public static UInt128 Two => new(0, 2);
     public static UInt128 Ten => new(0, 10);
+
+    /// <summary>
+    ///     Maximum value of UInt128 : 340_282_366_920_938_463_463_374_607_431_768_211_455
+    /// </summary>
+    public static UInt128 MaxValue => new(ulong.MaxValue, ulong.MaxValue);
 
     // Implicit conversion from ulong to UInt128
     public static implicit operator UInt128(ulong value)
@@ -86,17 +95,54 @@ internal class UInt128
         return new UInt128(x2, y2);
     }
 
-    // x * y % 2^128
+    /// <summary>
+    ///     Multiplies two UInt128 values and returns the result modulo 2^128.
+    /// </summary>
+    /// <param name="x">The first UInt128 operand.</param>
+    /// <param name="y">The second UInt128 operand.</param>
+    /// <returns>The product of x and y, modulo 2^128.</returns>
     public static UInt128 operator *(UInt128 x, UInt128 y)
     {
+        // Decompose the operands x and y into their high and low 64-bit parts.
         var (xh, xl) = (x.High, x.Low);
         var (yh, yl) = (y.High, y.Low);
 
-        var z0 = xl * yl;
-        var z1 = xl * yh + xh * yl;
+        // Further decompose the 64-bit parts into 32-bit chunks.
+        // x = x3<<96 + x2<<64 + x1<<32 + x0
+        var (x3, x2) = (xh >> 32, xh & 0xffffffff);
+        var (x1, x0) = (xl >> 32, xl & 0xffffffff);
 
-        var low = z0 + (z1 << 64);
-        var high = z1 + (low < z0 ? 1UL : 0);
+        // y = y3<<96 + y2<<64 + y1<<32 + y0
+        var (y3, y2) = (yh >> 32, yh & 0xffffffff);
+        var (y1, y0) = (yl >> 32, yl & 0xffffffff);
+
+        // Perform multiplication while considering the modulus 2^128.
+        // The result of x * y is decomposed into z = z3<<96 + z2<<64 + z1<<32 + z0
+        // where each zN is computed based on the components of x and y.
+        var z0 = x0 * y0; // Compute z0 = x0 * y0
+        var z1 = x1 * y0; // Compute z1 = x1 * y0
+        var z2 = x2 * y0 + x1 * y1 + x0 * y2; // Compute z2 = x2 * y0 + x1 * y1 + x0 * y2
+        var z3 = x3 * y0 + x2 * y1 + x1 * y2 + x0 * y3; // Compute z3 = x3 * y0 + x2 * y1 + x1 * y2 + x0 * y3
+
+        // Add the contribution of x0 * y1 to z1.
+        z1 += x0 * y1;
+
+        // If adding x0 * y1 causes an overflow in z1, increment z3 to account for the overflow.
+        if (z1 < x0 * y1) z3 += 1;
+
+        // Compute the lower 64 bits of the product.
+        var low = z0 + (z1 << 32);
+
+        // Compute the higher 64 bits of the product.
+        var high = (z1 >> 32) + z2 + (z3 << 32);
+
+        // If adding z0 to z1<<32 causes an overflow in low, increment high to account for it.
+        if (low < z0) high += 1;
+
+        // Print the computed low and high parts (for debugging purposes).
+        //Console.WriteLine($"low={low}, high={high}");
+
+        // Return the final result as a new UInt128 composed of the computed high and low parts.
         return new UInt128(high, low);
     }
 
@@ -154,14 +200,13 @@ internal class UInt128
             if (x.High == 0)
                 // Simple 64-bit division
                 return (new UInt128(0, x.Low / y.Low), new UInt128(0, x.Low % y.Low));
-            var mask = 0xffffffffffffffff;
             // We must consider `x.High` as well
-            var quotientHigh = x.High / y.Low;
-            var remainderHigh = x.High % y.Low;
+            // a = x.High, b = x.Low, c = y.Low
+            // (a*2^64+b)/c = (a/c)*2^64+b/c+(2^64*a%c)/c
+            // (a*2^64+b)%c = ((a%c)*(2^64%c)%c+b%c)%c.
+            var mask = 0xffffffffffffffff;
             var quotientMid = mask / y.Low;
             var remainderMid = mask % y.Low;
-            var quotientLow = x.Low / y.Low;
-            var remainderLow = x.Low % y.Low;
             remainderMid += 1;
             if (remainderMid >= y.Low)
             {
@@ -169,6 +214,10 @@ internal class UInt128
                 remainderMid -= y.Low;
             }
 
+            var quotientHigh = x.High / y.Low;
+            var remainderHigh = x.High % y.Low;
+            var quotientLow = x.Low / y.Low;
+            var remainderLow = x.Low % y.Low;
             quotientMid *= remainderHigh;
             remainderMid *= remainderHigh;
             quotientMid += remainderMid / y.Low;
@@ -211,6 +260,7 @@ internal class UInt128
         var y = Zero;
         var x = this;
         if (x == Zero) return "0";
+
         while (x > Zero)
         {
             (x, y) = DivMod(x, Ten);
@@ -224,10 +274,12 @@ internal class UInt128
     {
         var x = Zero;
         var inputArray = input.ToArray();
-        for (var i = 0; i < inputArray.Length; i++)
+        for (var i = 0; i < inputArray.Length; i += 1)
         {
+            var digit = (ulong)(inputArray[i] - '0');
+            if (digit > 9) throw new ArgumentOutOfRangeException();
             x = (x << 3) + (x << 1);
-            x += new UInt128(0, (UInt64)(inputArray[i] - '0'));
+            x += new UInt128(0, digit);
         }
 
         return x;
